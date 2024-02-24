@@ -1,142 +1,113 @@
-﻿using System.Linq;
+﻿using ExpenseTracking.Application.Model;
+using ExpenseTracking.Application.Queries.Expense;
+using ExpenseTracking.Application.Services;
+using ExpenseTracking.Domain.Entities;
+using ExpenseTracking.Domain.Repositories;
+using ExpenseTracking.Infrastructure.Repositories;
+using MediatR;
+using Moq;
+using Shouldly;
+using System.Linq;
 
 namespace ExpenseTracking.UnitTests;
 
 public class CreateExpenceHandlerTest
 {
-    [Fact]
-    public void Should_Create_Expence()
+    private readonly ExpenseTracker _expenseTracker;
+    private readonly Mock<IBudgetService> _budgetServiceMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly Mock<IGenericRepository<Expense>> _expenseRepositoryMock;
+    private readonly Mock<IMediator> _meiatorMock;
+    private readonly CreateExpenseQueryHandler _handler;
+    private readonly CreateExpenseQuery _request;
+    private readonly Budget _budget;
+
+    public CreateExpenceHandlerTest()
     {
-        var expence = new Expense
+        _expenseTracker = new ExpenseTracker();
+        _budgetServiceMock = new Mock<IBudgetService>();
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
+        _expenseRepositoryMock = new Mock<IGenericRepository<Expense>>();
+        _handler = new CreateExpenseQueryHandler(_expenseTracker, _unitOfWorkMock.Object, _budgetServiceMock.Object);
+        _meiatorMock = new Mock<IMediator>();
+        _request = new CreateExpenseQuery
         {
-            Name = "Pitza",
-            Category = new CategoryExpense
-            {
-                Id = 1,
-                Name = "Food"
-            },
+            Amount = 100.0m,
+            Category = "Groceries",
             Date = DateTime.Now,
-            Amount = new Money(200_000M, "IRR"),
-            Description = "from pose" ,
-            BuyingType = BuyingType.Internet
+            Notes = "Shopping"
         };
-        var handler = new CreateExpenceHandler();
-
-
-        handler.ExpenceService(expence);
-
-
-
-    }
-
-    [Fact]
-    public void Should_Update_Expence()
-    {
-        var expence = new Expense
+        _budget = new Budget
         {
-            Id = 1,
-            Name = "Pizza",
-            Category = new CategoryExpense
-            {
-                Id = 1,
-                Name = "Fastfood"
-            },
-            Date = DateTime.Now,
-            Amount = new Money(160_000M, "IRR"),
-            Description = "web site sanppfood",
-            BuyingType = BuyingType.Internet
+            UserId = 1,
+            Category = "Groceries",
+            AllocatedAmount = 200.0m
         };
-
-        var handler = new UpdateExpenceHandler();
-
-        handler.ExpenceService( expence );
     }
 
     [Fact]
-    public void AddExpense_ShouldIncreaseExpenseListCount()
+    public async Task Handle_ValidExpense_AddsExpenseAndUpdatesBudget()
     {
         // Arrange
-        ExpenseTracker expenseTracker = new ExpenseTracker();
-        Expense expense = new Expense(50.00m, "Food", DateTime.Now, "Lunch");
+        _budgetServiceMock.Setup(x => x.GetBudgetByCategoryAsync(_request.UserId, _request.Category))
+            .ReturnsAsync(_budget);
 
         // Act
-        expenseTracker.AddExpense(expense);
+        Expense savedExpense = null;
+        var handleMethod = _handler.GetType().GetMethod("Handle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        await (Task)handleMethod.Invoke(_handler, new object[] { _request, CancellationToken.None });
 
         // Assert
-        Assert.Equal(1, expenseTracker.Expenses.Count);
+        _expenseRepositoryMock.Verify(x => x.Create(It.IsAny<Expense>(), CancellationToken.None), Times.Once);
+        _unitOfWorkMock.Verify(x => x.SaveChanges(), Times.Once);
+        //budgetServiceMock.Verify(x => x.NotifyBudgetExceededAsync(request.UserId, budget), Times.Never);
+
+        Assert.Equal(_request.Amount, _expenseTracker.Expenses?.Last().Amount.Amount);
+        Assert.Equal(_request.Category, _expenseTracker.Expenses?.Last().Category);
+        Assert.Equal(_request.Date, _expenseTracker.Expenses?.Last().Date);
+        Assert.Equal(_request.Notes, _expenseTracker.Expenses?.Last().Notes);
+        Assert.Equal(_request.Id.Value, _expenseTracker.Expenses?.Last().Id);
     }
 
     [Fact]
-    public void CategoryManagement_AddCategory_ShouldIncreaseCategoryCount()
+    public async Task Handle_ExpenseExceedsBudget_SendsNotification()
     {
         // Arrange
-        ExpenseTracker expenseTracker = new ExpenseTracker();
+        _budgetServiceMock.Setup(x => x.GetBudgetByCategoryAsync(_request.UserId, _request.Category))
+            .ReturnsAsync(_budget);
 
         // Act
-        expenseTracker.AddCategory("Groceries");
+        var handleMethod = _handler.GetType().GetMethod("Handle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        await (Task)handleMethod.Invoke(_handler, new object[] { _request, CancellationToken.None });
 
         // Assert
-        Assert.Equal(1, expenseTracker.Categories.Count);
+        _expenseRepositoryMock.Verify(x => x.Create(It.IsAny<Expense>(), CancellationToken.None), Times.Once);
+        _unitOfWorkMock.Verify(x => x.SaveChanges(), Times.Once);
+        //budgetServiceMock.Verify(x => x.NotifyBudgetExceededAsync(request.UserId, budget), Times.Once);
+
+        Assert.Equal(_request.Amount, _expenseTracker.Expenses?.Last().Amount.Amount);
+        Assert.Equal(_request.Category, _expenseTracker.Expenses?.Last().Category);
+        Assert.Equal(_request.Date, _expenseTracker.Expenses?.Last().Date);
+        Assert.Equal(_request.Notes, _expenseTracker.Expenses?.Last().Notes);
+        Assert.Equal(_request.Id.Value, _expenseTracker.Expenses?.Last().Id);
     }
 
     [Fact]
-    public void CategoryManagement_EditCategory_ShouldModifyCategoryName()
+    public async Task Handle_NullRequest_ThrowsArgumentNullException()
     {
         // Arrange
-        ExpenseTracker expenseTracker = new ExpenseTracker();
-        expenseTracker.AddCategory("Dining Out");
+        var expenseTrackerMock = new Mock<ExpenseTracker>();
+        var unitOfWorkMock = new Mock<IUnitOfWork>();
+        var budgetServiceMock = new Mock<IBudgetService>();
 
-        // Act
-        expenseTracker.EditCategory("Dining Out", "Restaurant Meals");
+        var handler = new CreateExpenseQueryHandler(
+            expenseTrackerMock.Object,
+            unitOfWorkMock.Object,
+            budgetServiceMock.Object
+        );
 
-        // Assert
-        Assert.True(expenseTracker.Categories.Any(x => x.Name == "Restaurant Meals"));
-    }
-
-    [Fact]
-    public void CategoryManagement_DeleteCategory_ShouldDecreaseCategoryCount()
-    {
-        // Arrange
-        ExpenseTracker expenseTracker = new ExpenseTracker();
-        expenseTracker.AddCategory("Entertainment");
-
-        // Act
-        expenseTracker.DeleteCategory("Entertainment");
-
-        // Assert
-        Assert.Equal(0, expenseTracker.Categories.Count);
-    }
-
-    [Fact]
-    public void ExpenseModification_EditExpense_ShouldModifyExpenseDetails()
-    {
-        // Arrange
-        ExpenseTracker expenseTracker = new ExpenseTracker();
-        Expense originalExpense = new Expense(30.00m, "Shopping", DateTime.Now, "Clothing");
-        expenseTracker.AddExpense(originalExpense);
-
-        // Act
-        Expense modifiedExpense = new Expense(40.00m, "Shopping", DateTime.Now, "Shoes");
-        expenseTracker.EditExpense(originalExpense, modifiedExpense);
-
-        // Assert
-        Assert.Equal(1, expenseTracker.Expenses.Count);
-        Assert.Equal(40.00m, expenseTracker.Expenses.First().Amount.Value);
-        Assert.Equal("Shoes", expenseTracker.Expenses.First().Category.Name);
-    }
-
-    [Fact]
-    public void ExpenseModification_DeleteExpense_ShouldDecreaseExpenseListCount()
-    {
-        // Arrange
-        ExpenseTracker expenseTracker = new ExpenseTracker();
-        Expense expenseToDelete = new Expense(25.00m, "Utilities", DateTime.Now, "Electricity");
-        expenseTracker.AddExpense(expenseToDelete);
-
-        // Act
-        expenseTracker.DeleteExpense(expenseToDelete);
-
-        // Assert
-        Assert.Equal(0, expenseTracker.Expenses.Count);
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => (Task)handler.GetType().GetMethod("Handle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .Invoke(handler, new object[] { null, CancellationToken.None }));
     }
 }

@@ -1,0 +1,71 @@
+﻿using ExpenseTracking.Application.Services;
+using ExpenseTracking.Domain.Repositories;
+using ExpenseTracking.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+
+namespace ExpenseTracking.Infrastructure.Repositories;
+
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly AppDbContext _context;
+    private readonly IDbContextTransaction transaction;
+    private readonly Dictionary<Type, object> _repositories;
+    public UnitOfWork(AppDbContext context)
+    {
+        _context = context;
+        transaction = context.Database.BeginTransaction();
+        _context.Database.EnsureCreated();
+        _repositories = new Dictionary<Type, object>();
+    }
+
+    public async Task Commit()
+    {
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+
+    public async Task Dispose()
+    {
+        await transaction.DisposeAsync();
+        await _context.DisposeAsync();
+    }
+
+    public async Task Rollback()
+    {
+        await transaction.RollbackAsync();
+    }
+
+    public async Task Save()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    public void SaveChanges()
+    {
+        _context.SaveChanges();
+    }
+
+    void IDisposable.Dispose()
+    {
+        transaction.Dispose();
+        _context.Dispose();
+    }
+
+    IGenericRepository<TEntity> IUnitOfWork.GetRepository<TEntity>()
+    {
+        if (_repositories.ContainsKey(typeof(TEntity)))
+        {
+            return (IGenericRepository<TEntity>)_repositories[typeof(TEntity)];
+        }
+
+        var repository = new GenericRepository<TEntity>(_context.Set<TEntity>());
+        _repositories.Add(typeof(TEntity), repository);
+        return repository;
+    }
+
+    async Task IUnitOfWork.SaveChanges()
+    {
+        await _context.SaveChangesAsync();
+    }
+}
