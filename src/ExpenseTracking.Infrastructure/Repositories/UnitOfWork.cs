@@ -1,4 +1,5 @@
 ﻿using ExpenseTracking.Application.Services;
+using ExpenseTracking.Domain.Entities;
 using ExpenseTracking.Domain.Repositories;
 using ExpenseTracking.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -51,7 +52,19 @@ public class UnitOfWork : IUnitOfWork
         transaction.Dispose();
         _context.Dispose();
     }
+    public TRepository GetRepository<TRepository, TEntity>()
+        where TRepository : class
+        where TEntity : class, IEntity, new()
+    {
+        if (_repositories.ContainsKey(typeof(TRepository)))
+        {
+            return (TRepository)_repositories[typeof(TRepository)];
+        }
 
+        var repository = Activator.CreateInstance(typeof(TRepository), _context.Set<TEntity>());
+        _repositories.Add(typeof(TRepository), repository);
+        return (TRepository)repository;
+    }
     IGenericRepository<TEntity> IUnitOfWork.GetRepository<TEntity>()
     {
         if (_repositories.ContainsKey(typeof(TEntity)))

@@ -1,6 +1,7 @@
 ﻿using ExpenseTracking.Application.Model;
 using ExpenseTracking.Application.Services;
 using ExpenseTracking.Domain.Entities;
+using ExpenseTracking.Domain.Repositories;
 using ExpenseTracking.Infrastructure.Repositories;
 using MediatR;
 using System.Reflection.Metadata;
@@ -17,20 +18,22 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
     private ExpenseTracker _expenseTracker;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGenericRepository<Domain.Entities.Expense> _expenceRepository;
-    private readonly IBudgetService _budgetService;
+    private readonly IBudgetRepository _budgetRepository;
+    //private readonly IBudgetService _budgetService;
 
     public CreateExpenseQueryHandler(ExpenseTracker expenseTracker, IUnitOfWork unitOfWork, IBudgetService budgetService)
     {
         _expenseTracker = expenseTracker;
         _expenceRepository = unitOfWork.GetRepository<Domain.Entities.Expense>(); 
+        _budgetRepository = unitOfWork.GetRepository<IBudgetRepository, Domain.Entities.Budget>(); 
         _unitOfWork = unitOfWork;
-        _budgetService = budgetService;
+        //_budgetService = budgetService;
     }
 
     async Task IRequestHandler<CreateExpenseQuery>.Handle(CreateExpenseQuery request, CancellationToken cancellationToken)
     {
         ValidateInput(request);
-        var budget = await _budgetService.GetBudgetByCategoryAsync(request.UserId, request.Category);
+        var budget = await _budgetRepository.GetBudgetByCategoryAsync(request.UserId, request.Category);
 
         if (budget != null)
         {
@@ -56,7 +59,7 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
     private static Domain.Entities.Expense ToExpense<TResult>(CreateExpenseQuery dto)
         => new Domain.Entities.Expense(new Domain.ValueObjects.Money(dto.Amount, "IRR"), dto.Category, dto.Date, dto.Notes);
 
-    private void NotifyBudgetExceeded(int userId, Budget budget)
+    private void NotifyBudgetExceeded(int userId, Domain.Entities.Budget budget)
     {
         var notificationContent = $"Expense exceeded budget limit for category {budget.Category}.";
         //_notificationService.SendNotification(userId, notificationContent);
