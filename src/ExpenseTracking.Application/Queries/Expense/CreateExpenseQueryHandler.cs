@@ -1,4 +1,5 @@
 ﻿using ExpenseTracking.Application.Model;
+using ExpenseTracking.Application.Queries.Budget;
 using ExpenseTracking.Application.Services;
 using ExpenseTracking.Domain.Entities;
 using ExpenseTracking.Domain.Repositories;
@@ -29,8 +30,7 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
         _unitOfWork = unitOfWork;
         //_budgetService = budgetService;
     }
-
-    async Task IRequestHandler<CreateExpenseQuery>.Handle(CreateExpenseQuery request, CancellationToken cancellationToken)
+    public async Task Handle(CreateExpenseQuery request, CancellationToken cancellationToken)
     {
         ValidateInput(request);
         var budget = await _budgetRepository.GetBudgetByCategoryAsync(request.UserId, request.Category);
@@ -46,7 +46,7 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
             _expenseTracker.AddExpense(request.Amount, "IIR", request.Category, request.Date, request.Notes);
 
             await _unitOfWork.SaveChanges();
-        }       
+        }
     }
 
     private void ValidateInput(CreateExpenseQuery expenseDto)

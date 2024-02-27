@@ -2,7 +2,7 @@
 
 public class BudgetDto
 {
-    public string UserId { get; set; }
+    public int UserId { get; set; }
     public string Category { get; set; }
     public decimal AllocatedAmount { get; set; }
 }

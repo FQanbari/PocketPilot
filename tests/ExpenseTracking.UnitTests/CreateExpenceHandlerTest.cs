@@ -8,6 +8,8 @@ using MediatR;
 using Moq;
 using Shouldly;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 
 namespace ExpenseTracking.UnitTests;
 
@@ -15,6 +17,7 @@ public class CreateExpenceHandlerTest
 {
     private readonly ExpenseTracker _expenseTracker;
     private readonly Mock<IBudgetService> _budgetServiceMock;
+    private readonly Mock<IBudgetRepository> _budgetRepository;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<IGenericRepository<Expense>> _expenseRepositoryMock;
     private readonly Mock<IMediator> _meiatorMock;
@@ -28,6 +31,7 @@ public class CreateExpenceHandlerTest
         _budgetServiceMock = new Mock<IBudgetService>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _expenseRepositoryMock = new Mock<IGenericRepository<Expense>>();
+        _budgetRepository = new Mock<IBudgetRepository>();
         _handler = new CreateExpenseQueryHandler(_expenseTracker, _unitOfWorkMock.Object, _budgetServiceMock.Object);
         _meiatorMock = new Mock<IMediator>();
         _request = new CreateExpenseQuery
@@ -45,6 +49,7 @@ public class CreateExpenceHandlerTest
         };
     }
 
+
     [Fact]
     public async Task Handle_ValidExpense_AddsExpenseAndUpdatesBudget()
     {
@@ -54,8 +59,7 @@ public class CreateExpenceHandlerTest
 
         // Act
         Expense savedExpense = null;
-        var handleMethod = _handler.GetType().GetMethod("Handle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        await (Task)handleMethod.Invoke(_handler, new object[] { _request, CancellationToken.None });
+        await _handler.Handle(_request, CancellationToken.None);
 
         // Assert
         _expenseRepositoryMock.Verify(x => x.Create(It.IsAny<Expense>(), CancellationToken.None), Times.Once);
@@ -73,12 +77,13 @@ public class CreateExpenceHandlerTest
     public async Task Handle_ExpenseExceedsBudget_SendsNotification()
     {
         // Arrange
-        _budgetServiceMock.Setup(x => x.GetBudgetByCategoryAsync(_request.UserId, _request.Category))
+        _unitOfWorkMock.Setup(x => x.GetRepository<IBudgetRepository, Budget>())
+            .Returns(_budgetRepository.Object);
+        _budgetRepository.Setup(x => x.GetBudgetByCategoryAsync(_request.UserId, _request.Category))
             .ReturnsAsync(_budget);
 
         // Act
-        var handleMethod = _handler.GetType().GetMethod("Handle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        await (Task)handleMethod.Invoke(_handler, new object[] { _request, CancellationToken.None });
+        await _handler.Handle(_request, CancellationToken.None);
 
         // Assert
         _expenseRepositoryMock.Verify(x => x.Create(It.IsAny<Expense>(), CancellationToken.None), Times.Once);
@@ -106,8 +111,8 @@ public class CreateExpenceHandlerTest
             budgetServiceMock.Object
         );
 
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => (Task)handler.GetType().GetMethod("Handle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .Invoke(handler, new object[] { null, CancellationToken.None }));
+        // Act & Assert        
+        await Assert.ThrowsAsync<ArgumentNullException>(() => handler.Handle(null, CancellationToken.None));
+
     }
 }
