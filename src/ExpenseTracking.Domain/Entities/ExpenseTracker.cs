@@ -5,7 +5,7 @@ using ExpenseTracking.Domain.ValueObjects;
 
 namespace ExpenseTracking.Domain.Entities;
 
-public class ExpenseTracker : BaseObject
+public class ExpenseTracker 
 {
     private readonly List<Expense> _expenses = new List<Expense>();
     private readonly List<Category> _categories = new List<Category>();

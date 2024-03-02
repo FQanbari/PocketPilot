@@ -22,9 +22,9 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
     private readonly IBudgetRepository _budgetRepository;
     //private readonly IBudgetService _budgetService;
 
-    public CreateExpenseQueryHandler(ExpenseTracker expenseTracker, IUnitOfWork unitOfWork, IBudgetService budgetService)
+    public CreateExpenseQueryHandler(IUnitOfWork unitOfWork)
     {
-        _expenseTracker = expenseTracker;
+        _expenseTracker = new ExpenseTracker();
         _expenceRepository = unitOfWork.GetRepository<Domain.Entities.Expense>(); 
         _budgetRepository = unitOfWork.GetRepository<IBudgetRepository, Domain.Entities.Budget>(); 
         _unitOfWork = unitOfWork;
@@ -45,7 +45,7 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
             await _expenceRepository.Create(ToExpense<Domain.Entities.Expense>(request), cancellationToken);
             _expenseTracker.AddExpense(request.Amount, "IIR", request.Category, request.Date, request.Notes);
 
-            await _unitOfWork.SaveChanges();
+            _unitOfWork.SaveChanges();
         }
     }
 

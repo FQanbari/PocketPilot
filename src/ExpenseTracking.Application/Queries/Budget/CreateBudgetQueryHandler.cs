@@ -36,7 +36,7 @@ internal class CreateBudgetQueryHandler : IRequestHandler<CreateBudgetQuery>
         else 
             await _budgetRepository.Create(new Domain.Entities.Budget { UserId = request.UserId, Category = request.Category, AllocatedAmount = request.AllocatedAmount, ExpiryDate = request.ExpiryDate}, cancellationToken);
         
-        await _unitOfWork.SaveChanges();
+        _unitOfWork.Commit();
     }
 
     private void ValidateInput(CreateBudgetQuery request)

@@ -34,7 +34,7 @@ internal class RemoveBudgetQueryHandler : IRequestHandler<RemoveBudgetQuery>
             await _budgetRepository.Delete(budget, cancellationToken);
         }
        
-        await _unitOfWork.SaveChanges();
+       _unitOfWork.Commit();
     }
 
     private void ValidateInput(RemoveBudgetQuery request)

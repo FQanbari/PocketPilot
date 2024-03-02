@@ -9,7 +9,7 @@ namespace ExpenseTracking.API.Controllers;
 public class BudgetController(IMediator mediator) : BaseController(mediator)
 {
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{userId:int}")]
     public async Task<ActionResult<List<BudgetDto>>> Get([FromRoute] GetBudgetListCommand query)
     {
         var result = await mediator.Send(query);
@@ -21,7 +21,7 @@ public class BudgetController(IMediator mediator) : BaseController(mediator)
     public async Task<IActionResult> Post([FromBody] CreateBudgetQuery command)
     {
         await mediator.Send(command);
-        return CreatedAtAction(nameof(Get), new { id = command.Id }, null);
+        return Ok();
     }
 
     [HttpDelete("{id:guid}")]

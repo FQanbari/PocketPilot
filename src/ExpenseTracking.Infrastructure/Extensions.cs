@@ -1,4 +1,7 @@
-﻿using ExpenseTracking.Domain.Repositories;
+﻿using ExpenseTracking.Application.Commands.Budget;
+using ExpenseTracking.Application.Handler;
+using ExpenseTracking.Application.Services;
+using ExpenseTracking.Domain.Repositories;
 using ExpenseTracking.Infrastructure.Context;
 using ExpenseTracking.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -7,13 +10,19 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracking.Infrastructure;
 
-internal static class Extensions
+public static class Extensions
 {
-    public static IServiceCollection AddSQLDB(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IBudgetRepository, BudgetRepository>();
-        services.AddScoped<IExpenseRepository, ExpenseRepository>();
-        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddSQLDB(configuration);
+        return services;
+    }
+    private static IServiceCollection AddSQLDB(this IServiceCollection services, IConfiguration configuration)
+    {
+        //services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddTransient<IUnitOfWork, UnitOfWork>();
+        //services.AddScoped<IBudgetRepository, BudgetRepository>();
+        //services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
         var options = configuration.GetOptions<ConnectionStringOptions>("ConnectionString");
         services.AddDbContext<AppDbContext>(ctx =>
@@ -21,6 +30,7 @@ internal static class Extensions
 
         return services;
     }
+    
     public static TOptions GetOptions<TOptions>(this IConfiguration configuration, string sectionName)
         where TOptions : new()
     {

@@ -4,6 +4,7 @@ using ExpenseTracking.Domain.Repositories;
 using ExpenseTracking.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Reflection;
 
 namespace ExpenseTracking.Infrastructure.Repositories;
 
@@ -19,35 +20,22 @@ public class UnitOfWork : IUnitOfWork
         _context.Database.EnsureCreated();
         _repositories = new Dictionary<Type, object>();
     }
-
-    public async Task Commit()
-    {
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-    }
-
-    public async Task Dispose()
-    {
-        await transaction.DisposeAsync();
-        await _context.DisposeAsync();
-    }
-
-    public async Task Rollback()
-    {
-        await transaction.RollbackAsync();
-    }
-
-    public async Task Save()
-    {
-        await _context.SaveChangesAsync();
-    }
-
     public void SaveChanges()
     {
         _context.SaveChanges();
     }
 
-    void IDisposable.Dispose()
+    public void Commit()
+    {
+        _context.SaveChanges();
+        transaction.Commit();
+    }
+
+    public void Rollback()
+    {
+        transaction.Rollback();
+    }
+    public void Dispose()
     {
         transaction.Dispose();
         _context.Dispose();
@@ -61,7 +49,10 @@ public class UnitOfWork : IUnitOfWork
             return (TRepository)_repositories[typeof(TRepository)];
         }
 
-        var repository = Activator.CreateInstance(typeof(TRepository), _context.Set<TEntity>());
+        var implementations = Assembly.GetExecutingAssembly().GetTypes()
+            .Where(type => typeof(TRepository).IsAssignableFrom(type) && !type.IsInterface).FirstOrDefault();
+
+        var repository = Activator.CreateInstance(implementations, _context.Set<TEntity>());
         _repositories.Add(typeof(TRepository), repository);
         return (TRepository)repository;
     }
@@ -77,8 +68,8 @@ public class UnitOfWork : IUnitOfWork
         return repository;
     }
 
-    async Task IUnitOfWork.SaveChanges()
-    {
-        await _context.SaveChangesAsync();
-    }
+    //async Task IUnitOfWork.SaveChanges()
+    //{
+    //    await _context.SaveChangesAsync();
+    //}
 }

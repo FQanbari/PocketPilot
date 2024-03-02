@@ -6,7 +6,7 @@ public class Expense : BaseObject
 {
     public Guid Id { get; private set; }
     public int UserId { get; private set; }
-    public Money Amount { get; private set; }
+    public string Amount { get; private set; }
     public string Category { get; private set; }
     public DateTime Date { get; private set; }
     public string Notes { get; private set; }
@@ -27,7 +27,7 @@ public class Expense : BaseObject
             throw new ArgumentNullException(nameof(notes));
         }
         Id = Guid.NewGuid();
-        Amount = amount ?? throw new ArgumentNullException(nameof(amount));
+        Amount = amount.ToString() ?? throw new ArgumentNullException(nameof(amount));
         Category = category ?? throw new ArgumentNullException(nameof(category));
         Date = date;
         Notes = notes;
@@ -45,7 +45,7 @@ public class Expense : BaseObject
 
     public void ChangeAmount(decimal newAmount, string newCurrency)
     {
-        Amount = new Money(newAmount, newCurrency);
+        Amount = (new Money(newAmount, newCurrency)).ToString();
     }
     public void DeleteExpense()
     {

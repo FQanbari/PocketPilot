@@ -6,9 +6,12 @@ namespace ExpenseTracking.Application.Services;
 
 public interface IUnitOfWork : IDisposable
 {
-    Task SaveChanges();
-    Task Commit();
-    Task Rollback();
+    //Task SaveChanges();
+    //Task Commit();
+    //Task Rollback();
+    void SaveChanges();
+    void Commit();
+    void Rollback();
     TRepository GetRepository<TRepository, TEntity>() 
         where TRepository : class
         where TEntity : class, IEntity, new();
