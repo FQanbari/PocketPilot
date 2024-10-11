@@ -1,4 +1,5 @@
 ﻿using ExpenseTracking.Domain.Exceptions;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ExpenseTracking.Domain.Entities;
 

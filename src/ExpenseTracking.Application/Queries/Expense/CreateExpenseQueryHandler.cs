@@ -37,11 +37,11 @@ public class CreateExpenseQueryHandler : IRequestHandler<CreateExpenseQuery>
 
         if (budget != null)
         {
-            if (request.Amount > budget.AllocatedAmount)
-            {
-                // Trigger a notification if the expense exceeds the budget limit
-                NotifyBudgetExceeded(request.UserId, budget);
-            }
+            //if (request.Amount > budget.AllocatedAmount)
+            //{
+            //    // Trigger a notification if the expense exceeds the budget limit
+            //    NotifyBudgetExceeded(request.UserId, budget);
+            //}
             await _expenceRepository.Create(ToExpense<Domain.Entities.Expense>(request), cancellationToken);
             _expenseTracker.AddExpense(request.Amount, "IIR", request.Category, request.Date, request.Notes);
 

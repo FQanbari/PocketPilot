@@ -13,8 +13,8 @@ public class User : BaseEntity<Guid>
 
     public ICollection<Budget> Budgets { get; set; }
     public ICollection<Expense> Expenses { get; set; }
-    public ICollection<SavingGoal> SavingGoals { get; set; }
-    public ICollection<Transaction> Transactions { get; set; }
-    public ICollection<Bill> Bills { get; set; }
+    //public ICollection<SavingGoal> SavingGoals { get; set; }
+    //public ICollection<Transaction> Transactions { get; set; }
+    //public ICollection<Bill> Bills { get; set; }
 
 }

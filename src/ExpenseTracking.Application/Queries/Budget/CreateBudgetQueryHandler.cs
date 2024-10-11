@@ -30,11 +30,11 @@ internal class CreateBudgetQueryHandler : IRequestHandler<CreateBudgetQuery>
 
         if(budget != null)
         {
-            budget.AllocatedAmount = request.AllocatedAmount;
+            //budget.AllocatedAmount = request.AllocatedAmount;
             await _budgetRepository.Update(budget, cancellationToken);
         }
         else 
-            await _budgetRepository.Create(new Domain.Entities.Budget { UserId = request.UserId, Category = request.Category, AllocatedAmount = request.AllocatedAmount, ExpiryDate = request.ExpiryDate}, cancellationToken);
+            await _budgetRepository.Create(new Domain.Entities.Budget { UserId = request.UserId, Category = request.Category}, cancellationToken);
         
         _unitOfWork.Commit();
     }

@@ -27,6 +27,6 @@ public class GetBudgetListCommandHandler : IRequestHandler<GetBudgetListCommand,
     {
         var budgets = await _budgetRepository.GetList(x => x.UserId == request.UserId, cancellationToken);
 
-        return budgets.Select(x => new BudgetDto { UserId = x.UserId, Category = x.Category, AllocatedAmount = x.AllocatedAmount }).ToList();
+        return budgets.Select(x => new BudgetDto { UserId = x.UserId, Category = x.Category,  }).ToList();
     }
 }

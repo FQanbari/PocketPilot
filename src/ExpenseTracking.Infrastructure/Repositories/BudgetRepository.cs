@@ -14,6 +14,6 @@ public class BudgetRepository : GenericRepository<Budget>, IBudgetRepository
 
     public async Task<Budget> GetBudgetByCategoryAsync(int userId, string category)
     {
-        return _dbSet.Where(x => x.UserId == userId &&  x.Category == category && x.ExpiryDate.Date >= DateTime.Now.Date).FirstOrDefault();
+        return _dbSet.Where(x => x.UserId == userId &&  x.Category == category).FirstOrDefault();
     }
 }
